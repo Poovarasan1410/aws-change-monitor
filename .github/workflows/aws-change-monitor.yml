@@ -36,12 +36,19 @@ jobs:
         run: |
           python scripts/monitor.py
 
+      - name: Run AWS API model monitor
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/api_models.py
+
       - name: Save monitoring state
         run: |
           git config user.name "AWS Change Monitor"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add data/state.json
+          git add data/api_state.json
 
           if git diff --cached --quiet; then
             echo "No state changes."
