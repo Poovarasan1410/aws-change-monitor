@@ -13,6 +13,7 @@ TIMEOUT = 15
 
 
 def load_json(path, default):
+
     if not os.path.exists(path):
         return default
 
@@ -30,6 +31,7 @@ def load_json(path, default):
 
 
 def save_json(path, data):
+
     os.makedirs(
         os.path.dirname(path),
         exist_ok=True
@@ -40,6 +42,7 @@ def save_json(path, data):
         "w",
         encoding="utf-8"
     ) as f:
+
         json.dump(
             data,
             f,
@@ -119,9 +122,7 @@ def parse_feed(xml_data):
 
     entries = []
 
-    for item in root.findall(
-        ".//item"
-    ):
+    for item in root.findall(".//item"):
 
         title = item.findtext(
             "title",
@@ -146,19 +147,16 @@ def parse_feed(xml_data):
         entries.append({
             "title": clean_text(title),
             "link": link.strip(),
-            "description":
-                clean_text(description),
-            "published":
-                published.strip()
+            "description": clean_text(
+                description
+            ),
+            "published": published.strip()
         })
 
     return entries
 
 
-def generate_id(
-    service,
-    item
-):
+def generate_id(service, item):
 
     raw = (
         service
@@ -173,7 +171,7 @@ def generate_id(
     ).hexdigest()
 
 
-def priority(item):
+def calculate_priority(item):
 
     text = (
         item["title"]
@@ -181,7 +179,7 @@ def priority(item):
         + item["description"]
     ).lower()
 
-    high = [
+    high_keywords = [
         "new service",
         "new capability",
         "general availability",
@@ -195,7 +193,7 @@ def priority(item):
         "console"
     ]
 
-    medium = [
+    medium_keywords = [
         "new feature",
         "now supports",
         "support for",
@@ -210,13 +208,13 @@ def priority(item):
 
     if any(
         keyword in text
-        for keyword in high
+        for keyword in high_keywords
     ):
         return "HIGH"
 
     if any(
         keyword in text
-        for keyword in medium
+        for keyword in medium_keywords
     ):
         return "MEDIUM"
 
@@ -273,33 +271,44 @@ def create_issue(
 Automatically detected by AWS Change Monitor.
 """
 
-    result = subprocess.run(
-        [
-            "gh",
-            "issue",
-            "create",
-            "--title",
-            title,
-            "--body",
-            body
-        ],
-        capture_output=True,
-        text=True,
-        timeout=30
-    )
+    try:
 
-    if result.returncode == 0:
-
-        print(
-            f"GitHub issue created: "
-            f"{result.stdout.strip()}"
+        result = subprocess.run(
+            [
+                "gh",
+                "issue",
+                "create",
+                "--title",
+                title,
+                "--body",
+                body
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30
         )
 
-    else:
+        if result.returncode == 0:
+
+            print(
+                f"GitHub issue created: "
+                f"{result.stdout.strip()}"
+            )
+
+        else:
+
+            print(
+                "WARNING: GitHub issue creation failed:"
+            )
+
+            print(
+                result.stderr
+            )
+
+    except subprocess.TimeoutExpired:
 
         print(
-            f"WARNING: GitHub issue failed: "
-            f"{result.stderr}"
+            "WARNING: GitHub issue creation timed out."
         )
 
 
@@ -388,7 +397,7 @@ def main():
             if item_id in processed:
                 continue
 
-            level = priority(
+            level = calculate_priority(
                 item
             )
 
@@ -405,8 +414,6 @@ def main():
                 f"Priority: {level}"
             )
 
-            # Only create issues for
-            # meaningful changes.
             if level in [
                 "HIGH",
                 "MEDIUM"
