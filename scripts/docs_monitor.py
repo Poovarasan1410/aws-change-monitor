@@ -2,17 +2,17 @@ import hashlib
 import json
 import os
 import re
-
-import requests
-from bs4 import BeautifulSoup
+import xml.etree.ElementTree as ET
+from urllib.request import Request, urlopen
 
 
 CONFIG_FILE = "config/docs_sources.json"
 STATE_FILE = "data/state.json"
 
+TIMEOUT = 15
+
 
 def load_json(path, default):
-
     if not os.path.exists(path):
         return default
 
@@ -25,12 +25,11 @@ def load_json(path, default):
 
         return json.loads(content)
 
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, OSError):
         return default
 
 
 def save_json(path, data):
-
     os.makedirs(
         os.path.dirname(path),
         exist_ok=True
@@ -41,7 +40,6 @@ def save_json(path, data):
         "w",
         encoding="utf-8"
     ) as f:
-
         json.dump(
             data,
             f,
@@ -50,10 +48,46 @@ def save_json(path, data):
         )
 
 
-def normalize(text):
+def fetch_feed(url):
+
+    print(f"Fetching: {url}")
+
+    request = Request(
+        url,
+        headers={
+            "User-Agent":
+                "AWS-Change-Monitor/1.0"
+        }
+    )
+
+    try:
+
+        with urlopen(
+            request,
+            timeout=TIMEOUT
+        ) as response:
+
+            return response.read()
+
+    except Exception as error:
+
+        print(
+            f"WARNING: Could not fetch feed: {error}"
+        )
+
+        return None
+
+
+def clean_text(text):
 
     if not text:
         return ""
+
+    text = re.sub(
+        r"<[^>]+>",
+        " ",
+        text
+    )
 
     text = re.sub(
         r"\s+",
@@ -64,146 +98,74 @@ def normalize(text):
     return text.strip()
 
 
-def fetch_page(url):
+def parse_feed(xml_data):
 
-    headers = {
-        "User-Agent":
-            "AWS-Change-Monitor/1.0"
-    }
+    if not xml_data:
+        return []
 
-    response = requests.get(
-        url,
-        headers=headers,
-        timeout=30
-    )
+    try:
 
-    response.raise_for_status()
+        root = ET.fromstring(
+            xml_data
+        )
 
-    return response.text
+    except ET.ParseError as error:
 
+        print(
+            f"WARNING: Invalid RSS/XML: {error}"
+        )
 
-def extract_changes(html):
+        return []
 
-    soup = BeautifulSoup(
-        html,
-        "html.parser"
-    )
+    entries = []
 
-    changes = []
+    for item in root.findall(
+        ".//item"
+    ):
 
-    tables = soup.find_all("table")
+        title = item.findtext(
+            "title",
+            ""
+        )
 
-    for table in tables:
+        link = item.findtext(
+            "link",
+            ""
+        )
 
-        rows = table.find_all("tr")
+        description = item.findtext(
+            "description",
+            ""
+        )
 
-        if not rows:
-            continue
+        published = item.findtext(
+            "pubDate",
+            ""
+        )
 
-        headers = [
-            normalize(
-                cell.get_text(
-                    " ",
-                    strip=True
-                )
-            ).lower()
-            for cell in rows[0].find_all(
-                ["th", "td"]
-            )
-        ]
+        entries.append({
+            "title": clean_text(title),
+            "link": link.strip(),
+            "description":
+                clean_text(description),
+            "published":
+                published.strip()
+        })
 
-        if not headers:
-            continue
-
-        change_index = None
-        description_index = None
-        date_index = None
-
-        for i, header in enumerate(headers):
-
-            if header == "change":
-                change_index = i
-
-            elif header == "description":
-                description_index = i
-
-            elif header in [
-                "date",
-                "release date"
-            ]:
-                date_index = i
-
-        if change_index is None:
-            continue
-
-        for row in rows[1:]:
-
-            cells = row.find_all(
-                ["td", "th"]
-            )
-
-            values = [
-                normalize(
-                    cell.get_text(
-                        " ",
-                        strip=True
-                    )
-                )
-                for cell in cells
-            ]
-
-            if len(values) <= change_index:
-                continue
-
-            change = values[
-                change_index
-            ]
-
-            description = ""
-
-            if (
-                description_index is not None
-                and len(values) >
-                description_index
-            ):
-                description = values[
-                    description_index
-                ]
-
-            date = ""
-
-            if (
-                date_index is not None
-                and len(values) >
-                date_index
-            ):
-                date = values[
-                    date_index
-                ]
-
-            if not change:
-                continue
-
-            changes.append({
-                "change": change,
-                "description": description,
-                "date": date
-            })
-
-    return changes
+    return entries
 
 
-def create_change_id(
+def generate_id(
     service,
-    change
+    item
 ):
 
     raw = (
         service
         + "|"
-        + change["change"]
+        + item["title"]
         + "|"
-        + change["date"]
+        + item["link"]
     )
 
     return hashlib.sha256(
@@ -211,72 +173,69 @@ def create_change_id(
     ).hexdigest()
 
 
-def calculate_priority(
-    change
-):
+def priority(item):
 
     text = (
-        change["change"]
+        item["title"]
         + " "
-        + change["description"]
+        + item["description"]
     ).lower()
 
-    high_keywords = [
-        "new feature",
-        "new capability",
+    high = [
         "new service",
-        "now supports",
-        "support added",
-        "console",
-        "status",
-        "monitoring",
-        "permission",
-        "iam",
+        "new capability",
+        "general availability",
+        "launch",
         "security",
+        "vulnerability",
         "deprecated",
         "deprecation",
         "end of support",
-        "breaking"
+        "breaking change",
+        "console"
     ]
 
-    medium_keywords = [
-        "updated",
-        "added",
-        "available",
-        "support",
+    medium = [
+        "new feature",
+        "now supports",
+        "support for",
+        "available in",
         "enhancement",
-        "region",
+        "integration",
+        "monitoring",
         "api",
         "cli",
         "policy"
     ]
 
-    for keyword in high_keywords:
+    if any(
+        keyword in text
+        for keyword in high
+    ):
+        return "HIGH"
 
-        if keyword in text:
-            return "HIGH"
-
-    for keyword in medium_keywords:
-
-        if keyword in text:
-            return "MEDIUM"
+    if any(
+        keyword in text
+        for keyword in medium
+    ):
+        return "MEDIUM"
 
     return "LOW"
 
 
 def create_issue(
     service,
-    change,
-    priority,
-    source_url
+    item,
+    level,
+    source
 ):
 
     import subprocess
 
     title = (
-        f"[AWS DOC {priority}] "
+        f"[AWS DOC {level}] "
         f"{service} - "
-        f"{change['change']}"
+        f"{item['title']}"
     )
 
     body = f"""# AWS Documentation Change
@@ -287,27 +246,31 @@ def create_issue(
 
 ## Priority
 
-**{priority}**
+**{level}**
 
-## Date
+## Published
 
-{change['date']}
+{item['published']}
 
 ## Change
 
-{change['change']}
+{item['title']}
 
-## Description
+## Details
 
-{change['description']}
+{item['description']}
 
-## AWS Documentation
+## Official AWS Source
 
-{source_url}
+{item['link']}
+
+## Monitoring Source
+
+{source}
 
 ---
 
-Detected automatically by AWS Change Monitor.
+Automatically detected by AWS Change Monitor.
 """
 
     result = subprocess.run(
@@ -318,47 +281,39 @@ Detected automatically by AWS Change Monitor.
             "--title",
             title,
             "--body",
-            body,
-            "--label",
-            "aws,aws-documentation"
+            body
         ],
         capture_output=True,
-        text=True
+        text=True,
+        timeout=30
     )
 
     if result.returncode == 0:
 
         print(
-            "Created GitHub issue:"
-        )
-
-        print(
-            result.stdout.strip()
+            f"GitHub issue created: "
+            f"{result.stdout.strip()}"
         )
 
     else:
 
         print(
-            "Issue creation failed:"
-        )
-
-        print(
-            result.stderr
+            f"WARNING: GitHub issue failed: "
+            f"{result.stderr}"
         )
 
 
 def main():
 
+    print()
     print(
-        "===================================="
+        "=========================================="
     )
-
     print(
         " AWS DOCUMENTATION CHANGE MONITOR"
     )
-
     print(
-        "===================================="
+        "=========================================="
     )
 
     config = load_json(
@@ -381,89 +336,94 @@ def main():
         )
     )
 
-    for source in config["sources"]:
+    total_new = 0
 
-        service = source["service"]
-        url = source["url"]
+    for source in config.get(
+        "sources",
+        []
+    ):
+
+        service = source.get(
+            "service",
+            "AWS"
+        )
+
+        url = source.get(
+            "url"
+        )
+
+        if not url:
+            continue
 
         print()
         print(
             f"Checking {service}..."
         )
 
-        try:
-
-            html = fetch_page(
-                url
-            )
-
-            changes = extract_changes(
-                html
-            )
-
-        except Exception as error:
-
-            print(
-                f"ERROR: {error}"
-            )
-
-            continue
-
-        print(
-            f"Found {len(changes)} "
-            f"document history entries."
+        xml_data = fetch_feed(
+            url
         )
 
-        for change in changes:
+        if not xml_data:
+            continue
 
-            change_id = create_change_id(
-                service,
-                change
-            )
+        entries = parse_feed(
+            xml_data
+        )
 
-            if change_id in processed:
+        print(
+            f"Found {len(entries)} entries."
+        )
+
+        for item in entries:
+
+            if not item["link"]:
                 continue
 
-            priority = calculate_priority(
-                change
+            item_id = generate_id(
+                service,
+                item
+            )
+
+            if item_id in processed:
+                continue
+
+            level = priority(
+                item
             )
 
             print()
             print(
-                f"NEW CHANGE: "
-                f"{service}"
+                f"NEW: {service}"
             )
 
             print(
-                f"Change: "
-                f"{change['change']}"
+                f"Title: {item['title']}"
             )
 
             print(
-                f"Date: "
-                f"{change['date']}"
+                f"Priority: {level}"
             )
 
-            print(
-                f"Priority: "
-                f"{priority}"
-            )
-
-            if priority in [
+            # Only create issues for
+            # meaningful changes.
+            if level in [
                 "HIGH",
                 "MEDIUM"
             ]:
 
                 create_issue(
                     service,
-                    change,
-                    priority,
+                    item,
+                    level,
                     url
                 )
 
             processed.add(
-                change_id
+                item_id
             )
+
+            total_new += 1
 
     state["processed"] = list(
         processed
@@ -476,7 +436,20 @@ def main():
 
     print()
     print(
+        "=========================================="
+    )
+
+    print(
+        f"New documentation entries: "
+        f"{total_new}"
+    )
+
+    print(
         "Documentation monitoring completed."
+    )
+
+    print(
+        "=========================================="
     )
 
 
