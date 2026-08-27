@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from urllib.request import Request, urlopen
@@ -462,3 +463,21 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+print()
+print("==========================================")
+print("Running AWS documentation monitoring")
+print("==========================================")
+
+result = subprocess.run(
+    [
+        "python",
+        "scripts/docs_monitor.py"
+    ],
+    capture_output=False
+)
+
+if result.returncode != 0:
+    print(
+        "AWS documentation monitoring failed."
+    )
