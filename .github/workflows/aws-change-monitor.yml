@@ -30,6 +30,37 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Test Microsoft Teams alert
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          webhook = os.environ["TEAMS_WEBHOOK_URL"]
+
+          payload = json.dumps({
+              "text": "🚨 AWS CHANGE MONITOR TEST\n\nService: EC2\nPriority: HIGH\n\nThis is a test of the GitHub Actions → Microsoft Teams notification pipeline."
+          }).encode("utf-8")
+
+          request = urllib.request.Request(
+              webhook,
+              data=payload,
+              headers={
+                  "Content-Type": "application/json"
+              },
+              method="POST"
+          )
+
+          with urllib.request.urlopen(
+              request,
+              timeout=15
+          ) as response:
+              print("Teams response:", response.read().decode())
+          PY
+
       - name: Run AWS change monitor
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
