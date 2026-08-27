@@ -541,48 +541,335 @@ def send_teams_notification(
 
         return
 
+    # --------------------------------------------------
+    # Service name
+    # --------------------------------------------------
+
     service_text = (
-
         ", ".join(services)
-
         if services
-
         else "AWS General"
     )
 
-    issue_text = ""
+    # --------------------------------------------------
+    # Priority formatting
+    # --------------------------------------------------
+
+    if priority == "HIGH":
+
+        priority_label = "🚨 HIGH"
+        priority_color = "Attention"
+
+    elif priority == "MEDIUM":
+
+        priority_label = "⚠️ MEDIUM"
+        priority_color = "Warning"
+
+    else:
+
+        priority_label = "ℹ️ LOW"
+        priority_color = "Accent"
+
+    # --------------------------------------------------
+    # Description
+    # --------------------------------------------------
+
+    description = (
+        item.get(
+            "description",
+            ""
+        )
+        .strip()
+    )
+
+    if not description:
+
+        description = (
+            "AWS has published a change "
+            "for this service."
+        )
+
+    # Keep Teams card readable
+    if len(description) > 2000:
+
+        description = (
+            description[:2000]
+            + "..."
+        )
+
+    # --------------------------------------------------
+    # GitHub issue action
+    # --------------------------------------------------
+
+    actions = []
+
+    if item.get("link"):
+
+        actions.append({
+
+            "type":
+                "Action.OpenUrl",
+
+            "title":
+                "View AWS Announcement",
+
+            "url":
+                item["link"]
+        })
 
     if issue_url:
 
-        issue_text = (
-            "\n\n"
-            "GitHub Issue:\n"
-            f"{issue_url}"
-        )
+        actions.append({
 
-    message = (
-        f"🚨 AWS {priority} CHANGE DETECTED\n\n"
+            "type":
+                "Action.OpenUrl",
 
-        f"Service: {service_text}\n"
+            "title":
+                "View GitHub Issue",
 
-        f"Change: {item['title']}\n"
+            "url":
+                issue_url
+        })
 
-        f"Published: {item['published']}\n\n"
+    # --------------------------------------------------
+    # Adaptive Card
+    # --------------------------------------------------
 
-        f"Details:\n"
-        f"{item['description'][:1500]}\n\n"
+    card = {
 
-        f"AWS Official Source:\n"
-        f"{item['link']}"
+        "type": "message",
 
-        f"{issue_text}"
-    )
+        "attachments": [
 
-    payload = json.dumps({
+            {
 
-        "text": message
+                "contentType":
+                    "application/vnd.microsoft.card.adaptive",
 
-    }).encode("utf-8")
+                "contentUrl":
+                    None,
+
+                "content": {
+
+                    "$schema":
+                        "http://adaptivecards.io/schemas/adaptive-card.json",
+
+                    "type":
+                        "AdaptiveCard",
+
+                    "version":
+                        "1.2",
+
+                    "body": [
+
+                        # --------------------------------
+                        # Header
+                        # --------------------------------
+
+                        {
+
+                            "type":
+                                "TextBlock",
+
+                            "text":
+                                "🚨 AWS CHANGE DETECTED",
+
+                            "weight":
+                                "Bolder",
+
+                            "size":
+                                "Large",
+
+                            "wrap":
+                                True
+                        },
+
+                        {
+
+                            "type":
+                                "TextBlock",
+
+                            "text":
+                                item["title"],
+
+                            "weight":
+                                "Bolder",
+
+                            "size":
+                                "Medium",
+
+                            "wrap":
+                                True,
+
+                            "spacing":
+                                "Small"
+                        },
+
+                        # --------------------------------
+                        # Priority
+                        # --------------------------------
+
+                        {
+
+                            "type":
+                                "TextBlock",
+
+                            "text":
+                                priority_label,
+
+                            "weight":
+                                "Bolder",
+
+                            "color":
+                                priority_color,
+
+                            "spacing":
+                                "Small"
+                        },
+
+                        # --------------------------------
+                        # Service information
+                        # --------------------------------
+
+                        {
+
+                            "type":
+                                "FactSet",
+
+                            "facts": [
+
+                                {
+
+                                    "title":
+                                        "AWS Service",
+
+                                    "value":
+                                        service_text
+                                },
+
+                                {
+
+                                    "title":
+                                        "Published",
+
+                                    "value":
+                                        item.get(
+                                            "published",
+                                            "Unknown"
+                                        )
+                                },
+
+                                {
+
+                                    "title":
+                                        "Change Type",
+
+                                    "value":
+                                        "AWS What's New / Security"
+                                }
+
+                            ],
+
+                            "spacing":
+                                "Medium"
+                        },
+
+                        # --------------------------------
+                        # Divider
+                        # --------------------------------
+
+                        {
+
+                            "type":
+                                "TextBlock",
+
+                            "text":
+                                "What changed",
+
+                            "weight":
+                                "Bolder",
+
+                            "size":
+                                "Medium",
+
+                            "spacing":
+                                "Medium"
+                        },
+
+                        {
+
+                            "type":
+                                "TextBlock",
+
+                            "text":
+                                description,
+
+                            "wrap":
+                                True,
+
+                            "spacing":
+                                "Small"
+                        },
+
+                        # --------------------------------
+                        # Operational impact
+                        # --------------------------------
+
+                        {
+
+                            "type":
+                                "TextBlock",
+
+                            "text":
+                                "Why this matters",
+
+                            "weight":
+                                "Bolder",
+
+                            "size":
+                                "Medium",
+
+                            "spacing":
+                                "Medium"
+                        },
+
+                        {
+
+                            "type":
+                                "TextBlock",
+
+                            "text":
+                                (
+                                    "Review this AWS change to "
+                                    "determine whether it affects "
+                                    "your infrastructure, monitoring, "
+                                    "security controls, automation, "
+                                    "or operational procedures."
+                                ),
+
+                            "wrap":
+                                True,
+
+                            "spacing":
+                                "Small"
+                        }
+
+                    ],
+
+                    # ------------------------------------
+                    # Buttons
+                    # ------------------------------------
+
+                    "actions":
+                        actions
+                }
+            }
+        ]
+    }
+
+    payload = json.dumps(
+        card
+    ).encode("utf-8")
 
     request = urllib.request.Request(
 
@@ -591,6 +878,7 @@ def send_teams_notification(
         data=payload,
 
         headers={
+
             "Content-Type":
                 "application/json"
         },
@@ -605,20 +893,36 @@ def send_teams_notification(
             timeout=15
         ) as response:
 
-            response.read()
+            response_body = (
+                response.read()
+                .decode("utf-8")
+            )
 
-        print()
-        print(
-            "Microsoft Teams notification "
-            "sent successfully."
-        )
+            print()
+            print(
+                "Microsoft Teams notification "
+                "sent successfully."
+            )
+
+            print(
+                f"Teams HTTP status: "
+                f"{response.status}"
+            )
+
+            if response_body:
+
+                print(
+                    f"Teams response: "
+                    f"{response_body}"
+                )
 
     except Exception as error:
 
         print(
-            f"WARNING: Teams notification failed: "
-            f"{error}"
+            "WARNING: Teams notification failed:"
         )
+
+        print(error)
 
 
 # ============================================================
