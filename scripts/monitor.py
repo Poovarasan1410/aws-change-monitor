@@ -13,8 +13,25 @@ def load_state():
             "processed": []
         }
 
-    with open(STATE_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+
+        if not content:
+            return {
+                "last_run": None,
+                "processed": []
+            }
+
+        return json.loads(content)
+
+    except json.JSONDecodeError:
+        print("WARNING: state.json is invalid. Starting with empty state.")
+
+        return {
+            "last_run": None,
+            "processed": []
+        }
 
 
 def save_state(state):
