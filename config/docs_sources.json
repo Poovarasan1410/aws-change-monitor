@@ -1,0 +1,52 @@
+{
+  "sources": [
+    {
+      "service": "AWS Management Console",
+      "url": "https://docs.aws.amazon.com/awsconsolehelpdocs/latest/gsg/document-history.html"
+    },
+    {
+      "service": "EC2",
+      "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/DocumentHistory.html"
+    },
+    {
+      "service": "VPC",
+      "url": "https://docs.aws.amazon.com/vpc/latest/userguide/WhatsNew.html"
+    },
+    {
+      "service": "IAM",
+      "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/document-history.html"
+    },
+    {
+      "service": "RDS",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/WhatsNew.html"
+    },
+    {
+      "service": "EKS",
+      "url": "https://docs.aws.amazon.com/eks/latest/userguide/doc-history.html"
+    },
+    {
+      "service": "ECS",
+      "url": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/document_history.html"
+    },
+    {
+      "service": "CloudWatch",
+      "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/DocumentHistory.html"
+    },
+    {
+      "service": "CloudWatch Logs",
+      "url": "https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/DocumentHistory_cwl.html"
+    },
+    {
+      "service": "S3",
+      "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/DocHistory.html"
+    },
+    {
+      "service": "AWS Config",
+      "url": "https://docs.aws.amazon.com/config/latest/developerguide/DocumentHistory.html"
+    },
+    {
+      "service": "AWS Support",
+      "url": "https://docs.aws.amazon.com/awssupport/latest/user/History.html"
+    }
+  ]
+}
