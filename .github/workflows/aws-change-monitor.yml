@@ -33,12 +33,14 @@ jobs:
       - name: Run AWS change monitor
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
           python scripts/monitor.py
 
       - name: Run AWS API model monitor
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
           python scripts/api_models.py
 
