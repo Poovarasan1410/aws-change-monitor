@@ -84,8 +84,6 @@ jobs:
 
           python-version: "3.12"
 
-          cache: "pip"
-
 
       # ------------------------------------------------------
       # 3. INSTALL DEPENDENCIES
