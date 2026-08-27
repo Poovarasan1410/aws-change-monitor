@@ -5,6 +5,7 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from urllib.request import Request, urlopen
+from docs_monitor import monitor_docs
 
 
 STATE_FILE = "data/state.json"
