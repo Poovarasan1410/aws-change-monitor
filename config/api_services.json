@@ -1,0 +1,92 @@
+{
+  "services": [
+    {
+      "name": "EC2",
+      "sdk_id": "ec2"
+    },
+    {
+      "name": "VPC",
+      "sdk_id": "ec2"
+    },
+    {
+      "name": "IAM",
+      "sdk_id": "iam"
+    },
+    {
+      "name": "S3",
+      "sdk_id": "s3"
+    },
+    {
+      "name": "RDS",
+      "sdk_id": "rds"
+    },
+    {
+      "name": "Lambda",
+      "sdk_id": "lambda"
+    },
+    {
+      "name": "ECS",
+      "sdk_id": "ecs"
+    },
+    {
+      "name": "EKS",
+      "sdk_id": "eks"
+    },
+    {
+      "name": "CloudWatch",
+      "sdk_id": "cloudwatch"
+    },
+    {
+      "name": "CloudTrail",
+      "sdk_id": "cloudtrail"
+    },
+    {
+      "name": "CloudFormation",
+      "sdk_id": "cloudformation"
+    },
+    {
+      "name": "CloudFront",
+      "sdk_id": "cloudfront"
+    },
+    {
+      "name": "WAF",
+      "sdk_id": "wafv2"
+    },
+    {
+      "name": "GuardDuty",
+      "sdk_id": "guardduty"
+    },
+    {
+      "name": "Security Hub",
+      "sdk_id": "securityhub"
+    },
+    {
+      "name": "KMS",
+      "sdk_id": "kms"
+    },
+    {
+      "name": "Secrets Manager",
+      "sdk_id": "secretsmanager"
+    },
+    {
+      "name": "Systems Manager",
+      "sdk_id": "ssm"
+    },
+    {
+      "name": "AWS Organizations",
+      "sdk_id": "organizations"
+    },
+    {
+      "name": "AWS Backup",
+      "sdk_id": "backup"
+    },
+    {
+      "name": "Bedrock",
+      "sdk_id": "bedrock"
+    },
+    {
+      "name": "SageMaker",
+      "sdk_id": "sagemaker"
+    }
+  ]
+}
