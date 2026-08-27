@@ -1,445 +1,106 @@
-name: AWS Change Monitor
-
-# ============================================================
-# WHEN THE WORKFLOW RUNS
-# ============================================================
+name: Teams Webhook Test
 
 on:
-
-  # Run automatically every 6 hours
-  schedule:
-    - cron: "17 */6 * * *"
-
-  # Allow manual execution from GitHub Actions
   workflow_dispatch:
 
-
-# ============================================================
-# PERMISSIONS
-# ============================================================
-
 permissions:
-
-  contents: write
-  issues: write
-
-
-# ============================================================
-# PREVENT MULTIPLE RUNS AT THE SAME TIME
-# ============================================================
-
-concurrency:
-
-  group: aws-change-monitor
-
-  cancel-in-progress: false
-
-
-# ============================================================
-# JOB
-# ============================================================
+  contents: read
 
 jobs:
-
-  monitor:
-
-    name: Monitor AWS Changes
-
+  teams-test:
     runs-on: ubuntu-latest
-
-    # Prevent a broken/stuck script from running forever
-    timeout-minutes: 5
-
-
-    # ========================================================
-    # STEPS
-    # ========================================================
 
     steps:
 
-
-      # ------------------------------------------------------
-      # 1. CHECKOUT REPOSITORY
-      # ------------------------------------------------------
-
-      - name: Checkout repository
-
-        uses: actions/checkout@v4
-
-        with:
-
-          # Required because we push state files later
-          fetch-depth: 0
-
-
-      # ------------------------------------------------------
-      # 2. SETUP PYTHON
-      # ------------------------------------------------------
-
-      - name: Setup Python
-
-        uses: actions/setup-python@v5
-
-        with:
-
-          python-version: "3.12"
-
-      - name: Test AWS Teams notification
+      - name: Test Microsoft Teams webhook
         env:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          AWS_MONITOR_TEST: "true"
-        run: |
-          python -u scripts/monitor.py
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Test AWS Teams notification
-        env:
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          AWS_MONITOR_TEST: "true"
-        run: |
-          python -u scripts/monitor.py
-
-      - name: Run AWS change monitor
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-        run: |
-          python -u scripts/monitor.py
-
-
-      # ------------------------------------------------------
-      # 3. INSTALL DEPENDENCIES
-      # ------------------------------------------------------
-
-      - name: Install dependencies
 
         run: |
 
-          python -m pip install --upgrade pip
-
-          if [ -f requirements.txt ]; then
-
-            echo "Installing requirements.txt"
-
-            pip install -r requirements.txt
-
-          else
-
-            echo "No requirements.txt found."
-
-            echo "Using Python standard library."
-
-          fi
-
-
-      # ------------------------------------------------------
-      # 4. SHOW MONITORING ENVIRONMENT
-      # ------------------------------------------------------
-
-      - name: Verify monitoring configuration
-
-        env:
-
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-        run: |
-
-          echo "=========================================="
-
-          echo "AWS CHANGE MONITOR"
-
-          echo "=========================================="
-
-          echo ""
-
-          if [ -n "$TEAMS_WEBHOOK_URL" ]; then
-
-            echo "Teams webhook: CONFIGURED"
-
-          else
-
-            echo "ERROR: Teams webhook is NOT configured"
-
-            exit 1
-
-          fi
-
-          echo ""
-
-          if [ -n "$GH_TOKEN" ]; then
-
-            echo "GitHub token: CONFIGURED"
-
-          else
-
-            echo "ERROR: GitHub token is NOT configured"
-
-            exit 1
-
-          fi
-
-          echo ""
-
-          echo "Python version:"
-
-          python --version
-
-          echo ""
-
-          echo "Repository:"
-
-          echo "$GITHUB_REPOSITORY"
-
-          echo ""
-
-          echo "=========================================="
-
-
-      # ------------------------------------------------------
-      # 5. RUN AWS WHAT'S NEW + SECURITY MONITOR
-      # ------------------------------------------------------
-
-      - name: Run AWS change monitor
-
-        env:
-
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-
-        run: |
-
-          echo "=========================================="
-
-          echo "Running AWS change monitor"
-
-          echo "=========================================="
-
-          echo ""
-
-          python -u scripts/monitor.py
-
-          echo ""
-
-          echo "=========================================="
-
-          echo "AWS change monitor completed"
-
-          echo "=========================================="
-
-
-      # ------------------------------------------------------
-      # 6. RUN AWS DOCUMENTATION MONITOR
-      # ------------------------------------------------------
-
-      - name: Run AWS documentation monitor
-
-        env:
-
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-
-        run: |
-
-          echo "=========================================="
-
-          echo "Running AWS documentation monitoring"
-
-          echo "=========================================="
-
-          echo ""
-
-          python -u scripts/docs_monitor.py
-
-          echo ""
-
-          echo "=========================================="
-
-          echo "AWS documentation monitoring completed"
-
-          echo "=========================================="
-
-
-      # ------------------------------------------------------
-      # 7. RUN AWS API MODEL MONITOR
-      # ------------------------------------------------------
-
-      - name: Run AWS API model monitor
-
-        env:
-
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-
-        run: |
-
-          echo "=========================================="
-
-          echo "Running AWS API model monitoring"
-
-          echo "=========================================="
-
-          echo ""
-
-          python -u scripts/api_models.py
-
-          echo ""
-
-          echo "=========================================="
-
-          echo "AWS API model monitoring completed"
-
-          echo "=========================================="
-
-
-      # ------------------------------------------------------
-      # 8. SHOW STATE FILES
-      # ------------------------------------------------------
-
-      - name: Show monitoring state
-
-        if: always()
-
-        run: |
-
-          echo "=========================================="
-
-          echo "Monitoring state"
-
-          echo "=========================================="
-
-          echo ""
-
-          if [ -f data/state.json ]; then
-
-            echo "AWS change state:"
-
-            cat data/state.json
-
-          else
-
-            echo "data/state.json not found"
-
-          fi
-
-          echo ""
-
-          if [ -f data/api_state.json ]; then
-
-            echo "AWS API state:"
-
-            cat data/api_state.json
-
-          else
-
-            echo "data/api_state.json not found"
-
-          fi
-
-
-      # ------------------------------------------------------
-      # 9. SAVE MONITORING STATE
-      # ------------------------------------------------------
-
-      - name: Save monitoring state
-
-        if: always()
-
-        run: |
-
-          echo "=========================================="
-
-          echo "Saving monitoring state"
-
-          echo "=========================================="
-
-          echo ""
-
-          git config user.name "AWS Change Monitor"
-
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          echo ""
-
-          echo "Git status:"
-
-          git status --short
-
-          echo ""
-
-          # Add state files only if they exist
-          if [ -f data/state.json ]; then
-
-            git add data/state.json
-
-          fi
-
-          if [ -f data/api_state.json ]; then
-
-            git add data/api_state.json
-
-          fi
-
-          # Check whether there are changes
-          if git diff --cached --quiet; then
-
-            echo "No monitoring state changes."
-
-          else
-
-            echo "Monitoring state changed."
-
-            git commit -m "chore: update AWS monitoring state"
-
-            git push
-
-          fi
-
-
-      # ------------------------------------------------------
-      # 10. FINAL STATUS
-      # ------------------------------------------------------
-
-      - name: Workflow summary
-
-        if: always()
-
-        run: |
-
-          echo "=========================================="
-
-          echo "AWS CHANGE MONITOR SUMMARY"
-
-          echo "=========================================="
-
-          echo ""
-
-          echo "Workflow: $GITHUB_WORKFLOW"
-
-          echo "Run ID: $GITHUB_RUN_ID"
-
-          echo "Repository: $GITHUB_REPOSITORY"
-
-          echo "Branch: $GITHUB_REF_NAME"
-
-          echo ""
-
-          echo "Monitor scripts executed:"
-
-          echo "  1. monitor.py"
-
-          echo "  2. docs_monitor.py"
-
-          echo "  3. api_models.py"
-
-          echo ""
-
-          echo "=========================================="
+          python - <<'PY'
+
+          import json
+          import os
+          import urllib.request
+
+          webhook = os.environ["TEAMS_WEBHOOK_URL"]
+
+          payload = {
+              "type": "message",
+              "attachments": [
+                  {
+                      "contentType": "application/vnd.microsoft.card.adaptive",
+                      "contentUrl": None,
+                      "content": {
+                          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                          "type": "AdaptiveCard",
+                          "version": "1.2",
+
+                          "body": [
+                              {
+                                  "type": "TextBlock",
+                                  "text": "🚨 AWS MONITOR TEST",
+                                  "weight": "Bolder",
+                                  "size": "Large",
+                                  "wrap": True
+                              },
+                              {
+                                  "type": "TextBlock",
+                                  "text": "GitHub Actions → Microsoft Teams webhook is working.",
+                                  "wrap": True
+                              },
+                              {
+                                  "type": "FactSet",
+                                  "facts": [
+                                      {
+                                          "title": "Service",
+                                          "value": "EC2"
+                                      },
+                                      {
+                                          "title": "Priority",
+                                          "value": "HIGH"
+                                      },
+                                      {
+                                          "title": "Test",
+                                          "value": "AWS Change Monitor"
+                                      }
+                                  ]
+                              }
+                          ]
+                      }
+                  }
+              ]
+          }
+
+          data = json.dumps(payload).encode("utf-8")
+
+          request = urllib.request.Request(
+              webhook,
+              data=data,
+              headers={
+                  "Content-Type": "application/json"
+              },
+              method="POST"
+          )
+
+          try:
+
+              with urllib.request.urlopen(
+                  request,
+                  timeout=30
+              ) as response:
+
+                  print("HTTP STATUS:", response.status)
+
+                  body = response.read().decode()
+
+                  print("RESPONSE:", body)
+
+          except Exception as error:
+
+              print("TEAMS WEBHOOK ERROR:", error)
+
+              raise
+
+          PY
