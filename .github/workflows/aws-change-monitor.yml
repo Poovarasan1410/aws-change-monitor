@@ -84,6 +84,32 @@ jobs:
 
           python-version: "3.12"
 
+      - name: Test AWS Teams notification
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          AWS_MONITOR_TEST: "true"
+        run: |
+          python -u scripts/monitor.py
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test AWS Teams notification
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          AWS_MONITOR_TEST: "true"
+        run: |
+          python -u scripts/monitor.py
+
+      - name: Run AWS change monitor
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          python -u scripts/monitor.py
+
 
       # ------------------------------------------------------
       # 3. INSTALL DEPENDENCIES
