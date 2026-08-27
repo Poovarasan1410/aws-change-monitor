@@ -29,36 +29,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Test Microsoft Teams notification
-        env:
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-        run: |
-          python - <<'PY'
-          import json
-          import os
-          import urllib.request
-
-          webhook = os.environ["TEAMS_WEBHOOK_URL"]
-
-          payload = json.dumps({
-              "text": "✅ AWS Change Monitor - Teams connection test successful."
-          }).encode("utf-8")
-
-          request = urllib.request.Request(
-              webhook,
-              data=payload,
-              headers={
-                  "Content-Type": "application/json"
-              },
-              method="POST"
-          )
-
-          with urllib.request.urlopen(
-              request,
-              timeout=15
-          ) as response:
-              print("Teams response:", response.read().decode())
-          PY
 
       - name: Run AWS change monitor
         env:
