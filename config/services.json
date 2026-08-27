@@ -1,0 +1,28 @@
+{
+  "services": [
+    "EC2",
+    "VPC",
+    "IAM",
+    "S3",
+    "RDS",
+    "Aurora",
+    "Lambda",
+    "ECS",
+    "EKS",
+    "CloudWatch",
+    "CloudTrail",
+    "CloudFormation",
+    "Route 53",
+    "CloudFront",
+    "WAF",
+    "GuardDuty",
+    "Security Hub",
+    "KMS",
+    "Secrets Manager",
+    "Systems Manager",
+    "AWS Organizations",
+    "AWS Backup",
+    "Bedrock",
+    "SageMaker"
+  ]
+}
