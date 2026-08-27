@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Test Microsoft Teams alert
+      - name: Test Microsoft Teams notification
         env:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
@@ -41,13 +41,56 @@ jobs:
 
           webhook = os.environ["TEAMS_WEBHOOK_URL"]
 
-          payload = json.dumps({
-              "text": "🚨 AWS CHANGE MONITOR TEST\n\nService: EC2\nPriority: HIGH\n\nThis is a test of the GitHub Actions → Microsoft Teams notification pipeline."
-          }).encode("utf-8")
+          payload = {
+              "type": "message",
+              "attachments": [
+                  {
+                      "contentType": "application/vnd.microsoft.card.adaptive",
+                      "contentUrl": None,
+                      "content": {
+                          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                          "type": "AdaptiveCard",
+                          "version": "1.2",
+                          "body": [
+                              {
+                                  "type": "TextBlock",
+                                  "text": "🚨 AWS Change Monitor Test",
+                                  "weight": "Bolder",
+                                  "size": "Large"
+                              },
+                              {
+                                  "type": "TextBlock",
+                                  "text": "GitHub Actions → Microsoft Teams connection is working successfully.",
+                                  "wrap": True
+                              },
+                              {
+                                  "type": "FactSet",
+                                  "facts": [
+                                      {
+                                          "title": "Service",
+                                          "value": "EC2"
+                                      },
+                                      {
+                                          "title": "Priority",
+                                          "value": "HIGH"
+                                      },
+                                      {
+                                          "title": "Environment",
+                                          "value": "AWS Change Monitor"
+                                      }
+                                  ]
+                              }
+                          ]
+                      }
+                  }
+              ]
+          }
+
+          data = json.dumps(payload).encode("utf-8")
 
           request = urllib.request.Request(
               webhook,
-              data=payload,
+              data=data,
               headers={
                   "Content-Type": "application/json"
               },
@@ -58,9 +101,10 @@ jobs:
               request,
               timeout=15
           ) as response:
-              print("Teams response:", response.read().decode())
+              print("HTTP status:", response.status)
+              print("Response:", response.read().decode())
           PY
-
+             
       - name: Run AWS change monitor
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
